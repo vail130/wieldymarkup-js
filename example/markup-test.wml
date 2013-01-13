@@ -1,0 +1,21 @@
+`<!DOCTYPE html>
+html lang=en
+  head
+    title <My Website>
+  body
+    #application
+      .navbar
+        .navbar-inner
+          a.brand href=# <Title>
+          ul.nav
+            li.active \-\ a href=#
+                i.icon-pencil
+                span <Home>
+            li
+              a href=# <Link>
+      form enctype=multipart/form-data
+        `<% var d = new Date(); %>
+        input.underscore-template type=text readonly= value=<%= d.getDate() %> /
+        input.mustache-template type=text readonly= value={{ val2 }} /
+        p <<%= val %> {{ val }} Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+          sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.>

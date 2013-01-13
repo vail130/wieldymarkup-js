@@ -1,0 +1,17 @@
+{
+  "name": "wieldymarkup",
+  "version": "0.1.0",
+  "description": "WieldyMarkup HTML Abstraction Markup Language Compiler",
+  "main": "wieldymarkup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [
+    "wieldymarkup",
+    "HTML",
+    "abstraction"
+  ],
+  "author": "Vail Gold",
+  "license": "MIT"
+}
