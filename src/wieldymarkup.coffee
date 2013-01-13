@@ -100,7 +100,7 @@ class WieldyMarkup
   
   processCurrentLevel: =>
     @previousLevel = @currentLevel
-    leadingWhitespace = @::getLeadingWhitespaceFromText @text
+    leadingWhitespace = @constructor.getLeadingWhitespaceFromText @text
     if leadingWhitespace is ""
       @currentLevel = 0
     
@@ -170,7 +170,7 @@ class WieldyMarkup
           lines.push _.str.join '\\-\\', lineSplitList.substring(1, lineSplitList.length)
         
         lines[0] = _.str.trim lines[0]
-        selector = @::getSelectorFromLine lines[0]
+        selector = @constructor.getSelectorFromLine lines[0]
         @processSelector selector
         restOfLine = _.str.trim lines[0].substring selector.length, lines[0].length
         restOfLine = @processAttributes restOfLine
@@ -184,17 +184,17 @@ class WieldyMarkup
         @currentLevel++
         line = _.str.join '\\-\\', lines.substring 1, lines.length
       
-      selector = @::getSelectorFromLine line
+      selector = @constructor.getSelectorFromLine line
       @processSelector selector
       restOfLine = _.str.trim line.substring selector.length, line.length
       restOfLine = @processAttributes restOfLine
       
       if _.str.startsWith restOfLine, '<'
         @innerText = restOfLine
-        if @::getTagNestLevel(@innerText) < 0
+        if @constructor.getTagNestLevel(@innerText) < 0
           throw "Too many '>' found on line #{@lineNumber}"
         
-        while @::getTagNestLevel(@innerText) > 0
+        while @constructor.getTagNestLevel(@innerText) > 0
           if @text is ""
             throw "Unmatched '<' found on line #{@lineNumber}"
           

@@ -16,229 +16,241 @@ describe 'Compiler', ->
   
   describe '#getSelectorFromLine()', ->
     it 'should return the selector string from a line', ->
-    line = "div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
-    expect(Compiler.getSelectorFromLine line).to.equal "div.class#id"
-    
-    line = "div"
-    expect(Compiler.getSelectorFromLine line).to.equal "div"
-    
-    line = ".class#id.class2 val=val1"
-    expect(Compiler.getSelectorFromLine line).to.equal ".class#id.class2"
+      line = "div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
+      expect(Compiler.getSelectorFromLine line).to.equal "div.class#id"
+      
+      line = "div"
+      expect(Compiler.getSelectorFromLine line).to.equal "div"
+      
+      line = ".class#id.class2 val=val1"
+      expect(Compiler.getSelectorFromLine line).to.equal ".class#id.class2"
+  
+  describe '#getTagNestLevel()', ->
+    it 'should return the level of nesting in a string given open and close substrings', ->
+      text = "  <div>"
+      expect(Compiler.getTagNestLevel text).to.equal 0
+      
+      text = "  <div <la;sdfajsd;f> dfajsl;fadfl   >"
+      expect(Compiler.getTagNestLevel text).to.equal 0
+      
+      text = "  <div <la;sdfajsd;f dfajsl;fadfl   >"
+      expect(Compiler.getTagNestLevel text).to.equal 1
+      
+      text = "  <div la;sdfajsd;f> dfajsl;fadfl   >"
+      expect(Compiler.getTagNestLevel text).to.equal -1
+      
+      text = "  {{div {{la;sdfajsd;f}} dfajsl;fadfl   }}"
+      expect(Compiler.getTagNestLevel text, '{{', '}}').to.equal 0
+  
+  describe '#getLeadingWhitespaceFromText()', ->
+    it 'should return ', ->
+      line = "    `<div class='class' id='id'>Content goes here</div>"
+      expect(Compiler.getLeadingWhitespaceFromText line).to.equal "    "
+      
+      line = "\t\tdiv.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
+      expect(Compiler.getLeadingWhitespaceFromText line).to.equal "\t\t"
+      
+      line = "\n  div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
+      expect(Compiler.getLeadingWhitespaceFromText line).to.equal ""
+  
+
+describe 'Compiler.prototype', ->
+  
+  describe '#constructor', ->
+    it 'should set correct initial instance variables', ->
+      c = new Compiler()
+      c.compile()
+      
+      expect(c.output).to.equal ''
+      expect(c.text).to.equal ''
+      expect(c.compress).to.equal false
+      expect(c.indentToken).to.equal ''
+      expect(c.currentLevel).to.equal 0
+      expect(c.previousLevel).to.equal null
+      expect(c.lineNumber).to.equal 0
+      
+      expect(c.openTags).to.be.a 'Array'
+      expect(c.openTags).to.have.length 0
   
   
+  describe '#processCurrentLevel()', ->
+    it 'should return the level of nesting for a line of markup', ->
+      c = new Compiler()
+      c.compile()
+      c.text = "    div"
+      c.processCurrentLevel()
+      expect(c.previousLevel).to.equal 0
+      expect(c.currentLevel).to.equal 1
+      expect(c.indentToken).to.equal "    "
+      
+      c = new Compiler()
+      c.compile()
+      c.text = "    div"
+      c.indentToken = "  "
+      c.processCurrentLevel()
+      expect(c.previousLevel).to.equal 0
+      expect(c.currentLevel).to.equal 2
+      expect(c.indentToken).to.equal "  "
+      
+      c = new Compiler()
+      c.compile()
+      c.text = "\t\tdiv"
+      c.indentToken = "\t"
+      c.processCurrentLevel()
+      expect(c.previousLevel).to.equal 0
+      expect(c.currentLevel).to.equal 2
+      expect(c.indentToken).to.equal "\t"
+      
+      
+      
   
   ###
-  def test_get_tag_nest_level(self):
-    text = "  <div>"
-    self.assertEqual(Compiler.get_tag_nest_level(text), 0)
-    
-    text = "  <div <la;sdfajsd;f> dfajsl;fadfl   >"
-    self.assertEqual(Compiler.get_tag_nest_level(text), 0)
-    
-    text = "  <div <la;sdfajsd;f dfajsl;fadfl   >"
-    self.assertEqual(Compiler.get_tag_nest_level(text), 1)
-    
-    text = "  <div la;sdfajsd;f> dfajsl;fadfl   >"
-    self.assertEqual(Compiler.get_tag_nest_level(text), -1)
-    
-    text = "  {{div {{la;sdfajsd;f}} dfajsl;fadfl   }}"
-    self.assertEqual(Compiler.get_tag_nest_level(text, '{{', '}}'), 0)
   
-  def test_get_leading_whitespace_from_text(self):
-    line = "    `<div class='class' id='id'>Content goes here</div>"
-    self.assertEqual(Compiler.get_leading_whitespace_from_text(line), "    ")
-    
-    line = "\t\tdiv.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
-    self.assertEqual(Compiler.get_leading_whitespace_from_text(line), "\t\t")
-    
-    line = "\n  div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
-    self.assertEqual(Compiler.get_leading_whitespace_from_text(line), "")
-  
-  def test_init_values(self):
-    c = Compiler()
-    comparison_values = [
-      ('output', ''),
-      ('open_tags', []),
-      ('indent_token', ''),
-      ('current_level', 0),
-      ('previous_level', None),
-      ('text', ''),
-      ('line_number', 0),
-      ('compress', False),
-    ]
-    
-    for cv in comparison_values:
-      self.assertEqual(getattr(c, cv[0]), cv[1])
-  
-  def test_process_current_level(self):
-    c = Compiler()
-    c.text = "    div"
-    c.process_current_level()
-    self.assertEqual(c.previous_level, 0)
-    self.assertEqual(c.current_level, 1)
-    self.assertEqual(c.indent_token, "    ")
-    
-    c = Compiler()
-    c.text = "    div"
-    c.indent_token = "  "
-    c.process_current_level()
-    self.assertEqual(c.previous_level, 0)
-    self.assertEqual(c.current_level, 2)
-    self.assertEqual(c.indent_token, "  ")
-    
-    c = Compiler()
-    c.text = "\t\tdiv"
-    c.indent_token = "\t"
-    c.process_current_level()
-    self.assertEqual(c.previous_level, 0)
-    self.assertEqual(c.current_level, 2)
-    self.assertEqual(c.indent_token, "\t")
-    
   def test_close_tag(self):
     c = Compiler()
-    c.indent_token = "  "
+    c.indentToken = "  "
     c.open_tags = [(0, "div")]
     c.close_tag()
-    self.assertEqual(c.output, "</div>\n")
-    self.assertEqual(c.open_tags, [])
+    expect(c.output, "</div>\n")
+    expect(c.open_tags, [])
     
-    c = Compiler('', compress=True)
-    c.indent_token = "  "
+    c = Compiler('', compress=true)
+    c.indentToken = "  "
     c.open_tags = [(0, "div")]
     c.close_tag()
-    self.assertEqual(c.output, "</div>")
-    self.assertEqual(c.open_tags, [])
+    expect(c.output, "</div>")
+    expect(c.open_tags, [])
   
   def test_close_lower_level_tags(self):
     c = Compiler()
-    c.current_level = 0
-    c.previous_level = 2
-    c.indent_token = "  "
+    c.currentLevel = 0
+    c.previousLevel = 2
+    c.indentToken = "  "
     c.open_tags = [
       (0, "div"),
       (1, "div"),
       (2, "span"),
     ]
     c.close_lower_level_tags()
-    self.assertEqual(c.output, "    </span>\n  </div>\n</div>\n")
+    expect(c.output, "    </span>\n  </div>\n</div>\n")
     
-    c = Compiler('', compress=True)
-    c.current_level = 0
-    c.previous_level = 2
-    c.indent_token = "  "
+    c = Compiler('', compress=true)
+    c.currentLevel = 0
+    c.previousLevel = 2
+    c.indentToken = "  "
     c.open_tags = [
       (0, "div"),
       (1, "div"),
       (2, "span"),
     ]
     c.close_lower_level_tags()
-    self.assertEqual(c.output, "</span></div></div>")
+    expect(c.output, "</span></div></div>")
   
   def test_process_embedded_line(self):
     c = Compiler()
-    c.current_level = 2
-    c.indent_token = "  "
+    c.currentLevel = 2
+    c.indentToken = "  "
     c.process_embedded_line("`<div>")
-    self.assertEqual(c.output, "    <div>\n")
+    expect(c.output, "    <div>\n")
     
     c = Compiler()
-    c.current_level = 3
-    c.indent_token = "\t"
+    c.currentLevel = 3
+    c.indentToken = "\t"
     c.process_embedded_line("`<div>")
-    self.assertEqual(c.output, "\t\t\t<div>\n")
+    expect(c.output, "\t\t\t<div>\n")
     
-    c = Compiler('', compress=True)
-    c.current_level = 3
-    c.indent_token = "\t"
+    c = Compiler('', compress=true)
+    c.currentLevel = 3
+    c.indentToken = "\t"
     c.process_embedded_line("`<div>")
-    self.assertEqual(c.output, "<div>")
+    expect(c.output, "<div>")
   
   def test_process_selector(self):
     c = Compiler()
     c.process_selector("div")
-    self.assertEqual(c.tag, "div")
-    self.assertEqual(c.tag_id, None)
-    self.assertEqual(c.tag_classes, [])
+    expect(c.tag, "div")
+    expect(c.tag_id, null)
+    expect(c.tag_classes, [])
     
     c = Compiler()
     c.process_selector("span.class1#id.class2")
-    self.assertEqual(c.tag, "span")
-    self.assertEqual(c.tag_id, "id")
-    self.assertEqual(c.tag_classes, ["class1", "class2"])
+    expect(c.tag, "span")
+    expect(c.tag_id, "id")
+    expect(c.tag_classes, ["class1", "class2"])
     
     c = Compiler()
     c.process_selector("#id.class")
-    self.assertEqual(c.tag, "div")
-    self.assertEqual(c.tag_id, "id")
-    self.assertEqual(c.tag_classes, ["class"])
+    expect(c.tag, "div")
+    expect(c.tag_id, "id")
+    expect(c.tag_classes, ["class"])
   
   def test_process_attributes(self):
     c = Compiler()
     rest_of_line = c.process_attributes("")
-    self.assertEqual(c.tag_attributes, [])
-    self.assertEqual(rest_of_line, "")
+    expect(c.tag_attributes, [])
+    expect(rest_of_line, "")
     
     c = Compiler()
     rest_of_line = c.process_attributes("href=# target=_blank")
-    self.assertEqual(c.tag_attributes, [' href="#"', ' target="_blank"'])
-    self.assertEqual(rest_of_line, "")
+    expect(c.tag_attributes, [' href="#"', ' target="_blank"'])
+    expect(rest_of_line, "")
     
     c = Compiler()
     rest_of_line = c.process_attributes("href=# <asdf>")
-    self.assertEqual(c.tag_attributes, [' href="#"'])
-    self.assertEqual(rest_of_line, "<asdf>")
+    expect(c.tag_attributes, [' href="#"'])
+    expect(rest_of_line, "<asdf>")
     
     c = Compiler()
     rest_of_line = c.process_attributes("val1=val1 data-val2=<%= val2 %> <asdf>")
-    self.assertEqual(c.tag_attributes, [' val1="val1"', ' data-val2="<%= val2 %>"'])
-    self.assertEqual(rest_of_line, "<asdf>")
+    expect(c.tag_attributes, [' val1="val1"', ' data-val2="<%= val2 %>"'])
+    expect(rest_of_line, "<asdf>")
     
     c = Compiler()
     rest_of_line = c.process_attributes("val1=val1 data-val2=<%= val2 %> <asdf <%= val3 %>>")
-    self.assertEqual(c.tag_attributes, [' val1="val1"', ' data-val2="<%= val2 %>"'])
-    self.assertEqual(rest_of_line, "<asdf <%= val3 %>>")
+    expect(c.tag_attributes, [' val1="val1"', ' data-val2="<%= val2 %>"'])
+    expect(rest_of_line, "<asdf <%= val3 %>>")
   
   def test_process_next_line(self):
     c = Compiler()
     c.text = "div\ndiv"
     c.process_next_line()
-    self.assertEqual(c.inner_text, None)
+    expect(c.inner_text, null)
     
     c = Compiler()
     c.text = "div <asdf>\ndiv"
     c.process_next_line()
-    self.assertEqual(c.inner_text, "asdf")
+    expect(c.inner_text, "asdf")
     
     c = Compiler()
     c.text = "div <<%= val %> asdf>\ndiv"
     c.process_next_line()
-    self.assertEqual(c.inner_text, "<%= val %> asdf")
+    expect(c.inner_text, "<%= val %> asdf")
     
     c = Compiler()
     c.text = "div href=# <asdf \n asdf ;lkj <%= val %>>\ndiv"
     c.process_next_line()
-    self.assertEqual(c.inner_text, "asdf asdf ;lkj <%= val %>")
+    expect(c.inner_text, "asdf asdf ;lkj <%= val %>")
     
     c = Compiler()
-    c.indent_token = "  "
+    c.indentToken = "  "
     c.text = "div \-\ a href=# <asdf>"
     c.process_next_line()
-    self.assertEqual(c.output, '<div>\n  <a href="#">asdf</a>\n')
+    expect(c.output, '<div>\n  <a href="#">asdf</a>\n')
   
     c = Compiler()
-    c.indent_token = "  "
+    c.indentToken = "  "
     c.text = "div \-\ a href=# target=_blank \-\ span <asdf>"
     c.process_next_line()
-    self.assertEqual(c.output, '<div>\n  <a href="#" target="_blank">\n    <span>asdf</span>\n')
+    expect(c.output, '<div>\n  <a href="#" target="_blank">\n    <span>asdf</span>\n')
   
   def test_add_html_to_output(self):
     c = Compiler()
-    c.line_starts_with_tick = True
+    c.line_starts_with_tick = true
     c.add_html_to_output()
-    self.assertEqual(c.output, '')
+    expect(c.output, '')
     
     c = Compiler()
-    c.line_starts_with_tick = False
+    c.line_starts_with_tick = false
     c.tag = 'input'
     c.tag_id = 'name-input'
     c.tag_classes = ['class1', 'class2']
@@ -246,21 +258,21 @@ describe 'Compiler', ->
       ' type="text"',
       ' value="Value"'
     ]
-    c.self_closing = True
+    c.self_closing = true
     c.add_html_to_output()
-    self.assertEqual(c.output, '<input id="name-input" class="class1 class2" type="text" value="Value" />\n')
+    expect(c.output, '<input id="name-input" class="class1 class2" type="text" value="Value" />\n')
     
     c = Compiler()
-    c.line_starts_with_tick = False
-    c.compress = True
+    c.line_starts_with_tick = false
+    c.compress = true
     c.tag = 'span'
-    c.tag_id = None
+    c.tag_id = null
     c.tag_classes = []
     c.tag_attributes = []
-    c.self_closing = False
+    c.self_closing = false
     c.inner_text = "<%= val1 %>"
     c.add_html_to_output()
-    self.assertEqual(c.output, '<span><%= val1 %></span>')
+    expect(c.output, '<span><%= val1 %></span>')
   ###
 
 
