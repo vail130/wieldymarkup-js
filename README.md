@@ -5,59 +5,9 @@
 
 WieldyMarkup is an HTML abstraction markup language, similar in many ways to [Haml](http://haml.info) and [Jade](http://jade-lang.com/). However, WieldyMarkup does not do any interpolation (currently), and is meant to be part of the build & deploy process, not the page serving process. It's probably best for writing static HTML pages and templates that use Underscore or Mustache templating languages, as well.
 
-## Installation
+## Instructions
 
-```shell
-gem install wieldymarkup
-```
-
-## Terminal Usage
-
-Creates `.html` files with the same file name in the same directory as compiled `.wml` files. Add `-c` or `--compress` argument to remove whitespace between HTML tags.
-
-### Specific Files
-
-This will fail if any files do not have the `.wml` extension. Use `-f` or `--force` anywhere to fail silently.
-
-```shell
-wieldymarkup /path/to/text_file_1.wml /path/to/text_file_2.wml
-```
-
-### In a Directory
-
-The directory should directly follow the `-d` argument. This will only compile direct children with `.wml` extension.
-
-```shell
-wieldymarkup -d /path/to/parent/directory
-```
-
-Add `-r` to compile all `.wml` files, recursively.
-
-## Ruby Usage
-
-```ruby
-require 'wieldymarkup'
-
-file = File.open(filepath, 'rb')
-data = file.read
-
-# Just a one-off
-html = Compiler.new(:text => data).output
-compressed_html = Compiler.new(:text => data, :compress => true).output
-
-# Or a little more flexible
-c = Compiler.new
-html = c.compile(:text => data)
-compressed_html = c.compile(:text => data, :compress => true)
-html_again = c.compile(:text => data, :compress => false)
-```
-
-## Testing
-
-```shell
-cd /path/to/wieldymarkup
-rake test
-```
+Coming soon...
 
 ## Indicative Example
 
