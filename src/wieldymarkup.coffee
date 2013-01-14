@@ -78,9 +78,9 @@ class WieldyMarkup
   constructor: (text="", compress=false) ->
     @text = text
     @compress = compress
-    @compile() if @text isnt ""
+    @compile()
   
-  compile: (text=null, compress=null) =>
+  compile: (text=null, compress=null) ->
     @text = text if text isnt null
     @compress = not not compress if compress isnt null
     
@@ -101,6 +101,7 @@ class WieldyMarkup
   processCurrentLevel: =>
     @previousLevel = @currentLevel
     leadingWhitespace = @constructor.getLeadingWhitespaceFromText @text
+    
     if leadingWhitespace is ""
       @currentLevel = 0
     
@@ -129,9 +130,9 @@ class WieldyMarkup
   
   closeTag: =>
     closingTagTuple = @openTags.pop()
-    if not @compress
-      output += _.str.repeat @indentToken, closingTagTuple[0]
-    @output += "</" + closingTagTuple[1] + ">"
+    if not @compress and closingTagTuple[0] > 0
+      @output += _.str.repeat @indentToken, closingTagTuple[0]
+    @output += "</#{closingTagTuple[1]}>"
     @output += "\n" if not @compress
     @
   
@@ -141,7 +142,7 @@ class WieldyMarkup
     @innerText = null
     line = ""
     
-    if @text.indexOf("\n") > -1
+    if "\n" in @text
       lineBreakIndex = @text.indexOf "\n"
       line = _.str.trim @text.substring 0, lineBreakIndex
       @text = @text.substring lineBreakIndex+1, @text.length
@@ -159,20 +160,12 @@ class WieldyMarkup
     
     else
       # Support multiple tags on one line via "\-\" delimiter
-      while true
-        lineSplitList = line.split '\\-\\'
-        lines = [lineSplitList[0]]
-        
-        if lineSplitList.length is 1
-          line = _.str.trim lineSplitList[0]
-          break
-        else
-          lines.push _.str.join '\\-\\', lineSplitList.substring(1, lineSplitList.length)
-        
-        lines[0] = _.str.trim lines[0]
-        selector = @constructor.getSelectorFromLine lines[0]
+      lineSplitList = line.split '\\-\\'
+      while lineSplitList.length > 1
+        temp_line = _.str.trim lineSplitList.shift()
+        selector = @constructor.getSelectorFromLine temp_line
         @processSelector selector
-        restOfLine = _.str.trim lines[0].substring selector.length, lines[0].length
+        restOfLine = _.str.trim temp_line.substring selector.length, temp_line.length
         restOfLine = @processAttributes restOfLine
         @addHtmlToOutput()
         
@@ -182,8 +175,8 @@ class WieldyMarkup
         @tagAttributes = []
         @previousLevel = @currentLevel
         @currentLevel++
-        line = _.str.join '\\-\\', lines.substring 1, lines.length
       
+      line = _.str.trim lineSplitList[lineSplitList.length - 1]
       selector = @constructor.getSelectorFromLine line
       @processSelector selector
       restOfLine = _.str.trim line.substring selector.length, line.length
@@ -351,22 +344,22 @@ class WieldyMarkup
 
   addHtmlToOutput: =>
     if not @lineStartsWithTick
-      tagHtml = "<" + @tag
-      tagHtml += ' id="' + @tagId + '"' if @tagId isnt null
+      tagHtml = "<#{@tag}"
+      tagHtml += " id=\"" + @tagId + "\"" if @tagId isnt null
         
       if @tagClasses.length > 0
-        tagHtml += ' class="' + @tagClasses.join(' ') + '"'
+        tagHtml += " class=\"" + @tagClasses.join(' ') + "\""
       
       tagHtml += @tagAttributes.join '' if @tagAttributes.length > 0
       
       if @selfClosing
-        tagHtml += ' />'
+        tagHtml += " />"
         @output += _.str.repeat(@indentToken, @currentLevel) if not @compress
         @output += tagHtml
         @output += "\n" if not @compress
       
       else
-        tagHtml += '>'
+        tagHtml += ">"
         tagHtml += @innerText if @innerText isnt null
         
         @output += _.str.repeat(@indentToken, @currentLevel) if not @compress
@@ -380,7 +373,7 @@ class WieldyMarkup
           )
     
         else
-          @output += "</" + @tag + ">"
+          @output += "</#{@tag}>"
           @output += "\n" if not @compress
     
     @
