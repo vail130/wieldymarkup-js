@@ -1,0 +1,96 @@
+#!/usr/bin/env node
+
+var Compiler = require('../lib/wieldymarkup').Compiler;
+var _ = require('underscore');
+var findit = require('findit');
+var fs = require('fs');
+
+function compileFileFromPath(filepath, options) {
+  if(typeof options !== 'object' || typeof options.hasOwnProperty === 'undefined') {
+    options = {};
+  }
+  options.strict = options.hasOwnProperty('strict') ? !!options.strict : true;
+  options.compress = options.hasOwnProperty('compress') ? !!options.compress : false;
+  
+  var filepathSections = filepath.split('/');
+  var filenameSections = filepathSections[filepathSections.length - 1].split('.');
+  var filename = filenameSections.slice(0, filenameSections.length - 1).join('.');
+  var ext = filenameSections[filenameSections.length - 1];
+  if(ext !== 'wml') {
+    if(options.strict) {
+      return console.log("Invalid extension for (" + filepath + "). Must be .wml.");
+    } else {
+      return;
+    }
+  }
+  
+  fs.readFile(filepath, 'utf8', function(err, data) {
+    if (err) { return console.log(err); }
+    var html = new Compiler(data, options.compress).output;
+    var temp = filepath.split('/');
+    temp.pop();
+    newFilepath = temp.join('/') + '/' + filename + '.html';
+    fs.writeFile(newFilepath, html);
+  });
+}
+
+function compileFromCommandLine(args) {
+  var compress = false;
+  if(args.indexOf("-c") > -1 || args.indexOf("--compress") > -1) {
+    compress = true
+    args = _.reject(args, function(arg) {
+      return ["-c", "--compress"].indexOf(arg) > -1;
+    });
+  }
+  
+  if(args.indexOf("-d") > -1) {
+    var dIndex = args.indexOf("-d");
+    if(args.length < dIndex + 1) {
+      return console.log("The -d argument must be followed immediately by a directory path in which to compiler .wml files.");
+    }
+    
+    var dirPath = args[dIndex + 1];
+    var stats = fs.statSync(dirPath);
+    
+    if(!stats.isDirectory()) {
+      return console.log("Invalid directory path following -d argument.");
+    }
+    
+    if(args.indexOf("-r") > -1) {
+      findit(dirPath).on('file', function (file) {
+        compileFileFromPath(file, {
+          strict: false,
+          compress: compress
+        });
+      });
+    } else {
+      fs.readdir(process.cwd(), function (err, files) {
+        if (err) {
+          return console.log(err);
+        }
+        _.each(files, function(file) {
+          compileFileFromPath(file, {
+            strict: false,
+            compress: compress
+          });
+        });
+      });
+    }
+    
+  } else {
+    var strict = true;
+    if(args.indexOf("-f") > -1 || args.indexOf("--force") > -1) {
+      strict = false;
+      args = _.reject(args , function(arg) { ["-f", "--force"].indexOf(arg) > -1 });
+    }
+    
+    _.each(args, function (filepath) {
+      compileFileFromPath(filepath, {
+        strict: strict,
+        compress: compress
+      });
+    });
+  }
+}
+
+compileFromCommandLine(process.argv.slice(2));

@@ -5,9 +5,64 @@
 
 WieldyMarkup is an HTML abstraction markup language, similar in many ways to [Haml](http://haml.info) and [Jade](http://jade-lang.com/). However, WieldyMarkup does not do any interpolation (currently), and is meant to be part of the build & deploy process, not the page serving process. It's probably best for writing static HTML pages and templates that use Underscore or Mustache templating languages, as well.
 
-## Instructions
+## Installation
 
-Coming soon...
+```shell
+npm install wieldymarkup
+```
+
+## Terminal Usage
+
+Creates `.html` files with the same file name in the same directory as compiled `.wml` files. Add `-c` or `--compress` argument to remove whitespace between HTML tags.
+
+### Specific Files
+
+This will fail if any files do not have the `.wml` extension. Use `-f` or `--force` anywhere to fail silently.
+
+```shell
+./path/to/wieldymarkup /path/to/text_file_1.wml /path/to/text_file_2.wml
+```
+
+### In a Directory
+
+The directory should directly follow the `-d` argument. This will only compile direct children with `.wml` extension.
+
+```shell
+./path/to/wieldymarkup -d /path/to/parent/directory
+```
+
+Add `-r` to compile all `.wml` files, recursively.
+
+## Node Usage
+
+```javascript
+var fs = require('fs');
+var Compiler = require('wieldymarkup');
+
+// Just a one-off
+fs.readFile('/path/to/file', 'utf8', function(err, data) {
+  if (err) { return console.log(err); }
+  var html = new Compiler(data).output;
+  var compressed_html = new Compiler(data, true).output;
+});
+
+# Or a little more flexible
+var c = new Compiler();
+fs.readFile('/path/to/file', 'utf8', function(err, data) {
+  if (err) { return console.log(err); }
+  var html = c.compile(data).output;
+  var compressed_html = c.compile(data, true).output;
+  var html_again = c.compile(data, false).output;
+});
+```
+
+## Testing
+
+```shell
+cd /path/to/wieldymarkup
+npm install mocha
+mocha
+```
 
 ## Indicative Example
 
