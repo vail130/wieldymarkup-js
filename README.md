@@ -3,7 +3,7 @@
 
 ## tl;dr
 
-WieldyMarkup is an HTML abstraction markup language, similar in many ways to [Haml](http://haml.info) and [Jade](http://jade-lang.com/). However, WieldyMarkup does not do any interpolation (currently), and is meant to be part of the build & deploy process, not the page serving process. It's probably best for writing static HTML pages and templates that use Underscore or Mustache templating languages, as well.
+WieldyMarkup is an HTML abstraction markup language, similar in many ways to [Jade](http://jade-lang.com/). However, WieldyMarkup does not do any interpolation (currently), and is meant to be part of the build & deploy process, not the page serving process. It's probably best for writing static HTML pages and templates that use Underscore or Mustache templating languages, as well.
 
 ## Installation
 
@@ -25,13 +25,25 @@ This will fail if any files do not have the `.wml` extension. Use `-f` or `--for
 
 ### In a Directory
 
-The directory should directly follow the `-d` argument. This will only compile direct children with `.wml` extension.
+The directory should directly follow the `-d` argument. This will compile direct children with `.wml` extension and create `.html` files in the same directory.
 
 ```shell
-./path/to/wieldymarkup -d /path/to/parent/directory
+./path/to/wieldymarkup -d example/
 ```
 
-Add `-r` to compile all `.wml` files, recursively.
+Use `-r` or `--recursive` to compile all `.wml` files, recursively.
+
+```shell
+./path/to/wieldymarkup -r -d example/
+```
+
+Add a second directory argument to compile all `.wml` files into `.html` files in a separate file tree.
+
+```shell
+./path/to/wieldymarkup -r -d example-wml/ example-html/
+```
+
+Use `-v` or `--verbose` for more messages in the console.
 
 ## Node Usage
 

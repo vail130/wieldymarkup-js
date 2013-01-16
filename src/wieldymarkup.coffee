@@ -13,14 +13,12 @@ class WieldyMarkup
       if grouperIndex is -1
         output += text if status
         text = ''
-      
       else
         output += text.substring(0, grouperIndex) if status
         if text.length > grouperIndex + 2
           text = text.substring(grouperIndex+1, text.length)
         else
           text = ''
-      
       status = not status
     output
   
@@ -30,22 +28,24 @@ class WieldyMarkup
       if @whitespace.indexOf(ch) > -1
         firstWhitespaceIndex = i
         break
-    if firstWhitespaceIndex is null then line else line.substring(0, firstWhitespaceIndex)
+    if firstWhitespaceIndex is null
+      line
+    else
+      line.substring(0, firstWhitespaceIndex)
   
-  @getTagNestLevel: (text, openString='<', closeString='>') =>
+  @getTagNestLevel: (text, openString = '<', closeString = '>') =>
     nest_level = 0
     while true
-      openStringIndex = if text.indexOf(openString) > -1 then text.indexOf(openString) else null
-      closeStringIndex = if text.indexOf(closeString) > -1 then text.indexOf(closeString) else null
+      openStringIndex = text.indexOf openString
+      closeStringIndex = text.indexOf closeString
       openStringFirst = false
       closeStringFirst = false
       
-      # Only same if both null
-      if openStringIndex is closeStringIndex
+      if openStringIndex is -1 and closeStringIndex is -1
         break
-      else if openStringIndex isnt null
+      else if openStringIndex isnt -1
         openStringFirst = true
-      else if closeStringIndex isnt null
+      else if closeStringIndex isnt -1
         closeStringFirst = true
       else
         if openStringIndex < closeStringIndex
@@ -58,13 +58,17 @@ class WieldyMarkup
         if text.length is openStringIndex + openString.length
           break
         else
-          text = text.substring(openStringIndex + openString.length, text.length)
+          text = text.substring(
+            openStringIndex + openString.length, text.length
+          )
       else if closeStringFirst
         nest_level--
         if text.length is closeStringIndex + closeString.length
           break
         else
-          text = text.substring(closeStringIndex+closeString.length, text.length)
+          text = text.substring(
+            closeStringIndex+closeString.length, text.length
+          )
     nest_level
   
   @getLeadingWhitespaceFromText: (text) =>
@@ -75,15 +79,14 @@ class WieldyMarkup
         break
     leadingWhitespace
   
-  constructor: (text="", compress=false) ->
+  constructor: (text = "", compress = false) ->
     @text = text
     @compress = compress
     @compile()
   
-  compile: (text=null, compress=null) ->
+  compile: (text = null, compress = null) ->
     @text = text if text isnt null
     @compress = not not compress if compress isnt null
-    
     @output = ""
     @openTags = []
     @indentToken = ""
@@ -104,36 +107,33 @@ class WieldyMarkup
     
     if leadingWhitespace is ""
       @currentLevel = 0
-    
-    # If there is leading whitespace but indentToken is still empty string
     else if @indentToken is ""
       @indentToken = leadingWhitespace
       @currentLevel = 1
-    
-    # Else, set currentLevel to number of repetitions of index_token in leadingWhitespace
     else
       i = 0
       while _.str.startsWith leadingWhitespace, @indentToken
-        leadingWhitespace = leadingWhitespace.substring @indentToken.length, leadingWhitespace.length
+        leadingWhitespace = leadingWhitespace.substring(
+          @indentToken.length, leadingWhitespace.length
+        )
         i += 1
       @currentLevel = i
-    
     @
   
   closeLowerLevelTags: =>
-    # If indentation level is less than or equal to previous level
     if @currentLevel <= @previousLevel
-      # Close all indentations greater than or equal to indentation level of this line
-      while @openTags.length > 0 and @openTags[@openTags.length - 1][0] >= @currentLevel
+      while @openTags.length > 0 and
+      @openTags[@openTags.length - 1][0] >= @currentLevel
         @closeTag()
     @
   
   closeTag: =>
-    closingTagTuple = @openTags.pop()
-    if not @compress and closingTagTuple[0] > 0
-      @output += _.str.repeat @indentToken, closingTagTuple[0]
-    @output += "</#{closingTagTuple[1]}>"
-    @output += "\n" if not @compress
+    closingTagArray = @openTags.pop()
+    if not @compress and closingTagArray[0] > 0
+      @output += _.str.repeat @indentToken, closingTagArray[0]
+    @output += "</#{closingTagArray[1]}>"
+    if not @compress
+      @output += "\n"
     @
   
   processNextLine: =>
@@ -154,18 +154,17 @@ class WieldyMarkup
     if line.length is 0
       return @
     
-    # Whole line embedded HTML, starting with back ticks:
     if line[0] is @embeddingToken
       @processEmbeddedLine line
-    
     else
-      # Support multiple tags on one line via "\-\" delimiter
       lineSplitList = line.split '\\-\\'
       while lineSplitList.length > 1
         temp_line = _.str.trim lineSplitList.shift()
         selector = @constructor.getSelectorFromLine temp_line
         @processSelector selector
-        restOfLine = _.str.trim temp_line.substring selector.length, temp_line.length
+        restOfLine = _.str.trim(
+          temp_line.substring selector.length, temp_line.length
+        )
         restOfLine = @processAttributes restOfLine
         @addHtmlToOutput()
         
@@ -190,7 +189,6 @@ class WieldyMarkup
         while @constructor.getTagNestLevel(@innerText) > 0
           if @text is ""
             throw "Unmatched '<' found on line #{@lineNumber}"
-          
           else if "\n" in @text
             lineBreakIndex = @text.indexOf "\n"
             # Guarantee only one space between text between lines.
@@ -199,13 +197,10 @@ class WieldyMarkup
               @text = ""
             else
               @text = @text.substring lineBreakIndex+1, @text.length
-          
           else
             @innerText += @text
             @text = ""
-        
         @innerText = _.str.trim(@innerText).substring 1, @innerText.length - 1
-      
       else if _.str.startsWith restOfLine, '/'
         if restOfLine.length > 0 and restOfLine[restOfLine.length - 1] is '/'
           @selfClosing = true
@@ -215,13 +210,14 @@ class WieldyMarkup
   
   processEmbeddedLine: (line) =>
     @lineStartsWithTick = true
-    @output += _.str.repeat @indentToken, @currentLevel if not @compress
+    if not @compress
+      @output += _.str.repeat @indentToken, @currentLeve
     @output += line.substring 1, line.length
-    @output += "\n" if not @compress
+    if not @compress
+      @output += "\n"
     @
   
   processSelector: (selector) =>
-    # Parse the first piece as a selector, defaulting to DIV tag if none is specified
     if selector.length > 0 and selector[0] in ['#', '.']
       @tag = 'div'
     else
@@ -271,11 +267,8 @@ class WieldyMarkup
   processAttributes: (restOfLine) =>
     @tagAttributes = []
     while restOfLine isnt ""
-      # If '=' doesn't exist, empty attribute string and break from loop
       if '=' not in restOfLine
         break
-      
-      # End line with "and" for coffeescript compiler
       else if '=' in restOfLine and '<' in restOfLine and
       restOfLine.indexOf('<') < restOfLine.indexOf('=')
         break
@@ -288,7 +281,6 @@ class WieldyMarkup
         closeIndex = restOfLine.indexOf '}}'
         if closeIndex is -1
           throw "Unmatched '{{' found in line #{@lineNumber}"
-      
       else if restOfLine.substr(firstEqualsIndex+1, 2) is '<%'
         embeddedAttribute = true
         closeIndex = restOfLine.indexOf '%>'
@@ -301,19 +293,18 @@ class WieldyMarkup
           restOfLine = ""
         else
           restOfLine = restOfLine.substr closeIndex+2
-      
       else if restOfLine.length is firstEqualsIndex+1
         currentAttribute = _.str.trim restOfLine
         restOfLine = ""
-      
       else if '=' not in restOfLine.substr(firstEqualsIndex+1)
         if '<' in restOfLine
-          currentAttribute = _.str.trim restOfLine.substring 0, restOfLine.indexOf '<'
+          currentAttribute = _.str.trim(
+            restOfLine.substring 0, restOfLine.indexOf '<'
+          )
           restOfLine = restOfLine.substr restOfLine.indexOf '<'
         else
           currentAttribute = restOfLine
           restOfLine = ""
-      
       else
         secondEqualsIndex = restOfLine.substr(firstEqualsIndex+1).indexOf '='
         reversedLettersBetweenEquals = _.str.reverse restOfLine.substring(
@@ -354,15 +345,18 @@ class WieldyMarkup
       
       if @selfClosing
         tagHtml += " />"
-        @output += _.str.repeat(@indentToken, @currentLevel) if not @compress
+        if not @compress
+          @output += _.str.repeat(@indentToken, @currentLevel)
         @output += tagHtml
-        @output += "\n" if not @compress
-      
+        if not @compress
+          @output += "\n"
       else
         tagHtml += ">"
-        tagHtml += @innerText if @innerText isnt null
+        if @innerText isnt null
+          tagHtml += @innerText
         
-        @output += _.str.repeat(@indentToken, @currentLevel) if not @compress
+        if not @compress
+          @output += _.str.repeat(@indentToken, @currentLevel)
         @output += tagHtml
         
         if @innerText is null
@@ -371,7 +365,6 @@ class WieldyMarkup
           @openTags.push(
             [@currentLevel, @tag]
           )
-    
         else
           @output += "</#{@tag}>"
           @output += "\n" if not @compress
@@ -379,5 +372,5 @@ class WieldyMarkup
     @
 
 exports = module.exports =
-  version: '0.2.0'
+  version: '0.2.1'
   Compiler: WieldyMarkup
