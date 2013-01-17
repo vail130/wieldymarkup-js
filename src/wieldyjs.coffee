@@ -1,7 +1,7 @@
 _ = require 'underscore'
 _.str = require 'underscore.string'
 
-class WieldyMarkup
+class WieldyJS
   
   @whitespace: " \t"
   
@@ -211,8 +211,8 @@ class WieldyMarkup
   processEmbeddedLine: (line) =>
     @lineStartsWithTick = true
     if not @compress
-      @output += _.str.repeat @indentToken, @currentLeve
-    @output += line.substring 1, line.length
+      @output += _.str.repeat @indentToken, @currentLevel
+    @output += _.str.trim(line).substr 1
     if not @compress
       @output += "\n"
     @
@@ -372,5 +372,5 @@ class WieldyMarkup
     @
 
 exports = module.exports =
-  version: '0.2.1'
-  Compiler: WieldyMarkup
+  version: '0.2.2'
+  Compiler: WieldyJS

@@ -1,10 +1,12 @@
 {
-  "name": "wieldymarkup",
-  "version": "0.2.1",
+  "name": "wieldyjs",
+  "version": "0.2.2",
   "description": "WieldyMarkup HTML Abstraction Markup Language Compiler",
-  "main": "wieldymarkup.js",
+  "homepage": "https://github.com/vail130/wieldymarkup-js",
+  "main": "lib/wieldyjs",
+  "preferGlobal": "true",
   "bin": {
-    "wieldymarkup-js": "./bin/wieldymarkup"
+    "wieldyjs": "bin/wieldyjs"
   },
   "dependencies": {
     "underscore": ">= 1.4.3",
@@ -21,12 +23,23 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/vail130/wieldymarkup-js"
+    "url": "git://github.com/vail130/wieldymarkup-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vail130/wieldymarkup-js/issues"
   },
   "keywords": [
     "wieldymarkup",
     "HTML abstraction"
   ],
-  "author": "Vail Gold",
-  "license": "MIT"
+  "author": {
+    "name": "Vail Gold",
+    "email": "vail@vailgold.com"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/vail130/wieldymarkup-js/blob/master/LICENSE-MIT"
+    }
+  ]
 }

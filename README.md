@@ -1,55 +1,46 @@
 
-# WieldyMarkup - Nicer than HTML
-
-## tl;dr
-
-WieldyMarkup is an HTML abstraction markup language, similar in many ways to [Jade](http://jade-lang.com/). However, WieldyMarkup does not do any interpolation (currently), and is meant to be part of the build & deploy process, not the page serving process. It's probably best for writing static HTML pages and templates that use Underscore or Mustache templating languages, as well.
+# WieldyMarkup - Template-agnostic markup that's clean and compiles to HTML
 
 ## Installation
 
 ```shell
-npm install wieldymarkup
+npm install wieldyjs -g
+wieldyjs
+
+WieldyJS: WieldyMarkup Compiler for Node
+  
+  Usage:
+    wieldyjs [options]* [(file | dir)* | ((-m | --mirror) in-dir out-dir)]
+  
+  Usage Syntax:
+    `[` and `]` denote optional groups
+    `(` and `)` denote semantic groups
+    `*` denotes 0 or more of the preceeding entity
+    `|` denotes OR relationship between preceeding and proceeding entities
+  
+  Global Options:
+    -h OR --help        Show this help message.
+    -v OR --verbose     Display messages describing compiler behavior.
+    -c OR --compress    Output HTML files without whitespace between tags.
+    -r OR --recursive   Search recursively inside directories for .wml files.
+  
 ```
 
 ## Terminal Usage
 
-Creates `.html` files with the same file name in the same directory as compiled `.wml` files. Add `-c` or `--compress` argument to remove whitespace between HTML tags.
+There are two main ways to use WieldyJS:
 
-### Specific Files
+1. List `.wml` files and directories containing `.wml` files, and WieldyJS will compile `.html` versions in the same location.
 
-This will fail if any files do not have the `.wml` extension. Use `-f` or `--force` anywhere to fail silently.
-
-```shell
-./path/to/wieldymarkup /path/to/text_file_1.wml /path/to/text_file_2.wml
-```
-
-### In a Directory
-
-The directory should directly follow the `-d` argument. This will compile direct children with `.wml` extension and create `.html` files in the same directory.
-
-```shell
-./path/to/wieldymarkup -d example/
-```
-
-Use `-r` or `--recursive` to compile all `.wml` files, recursively.
-
-```shell
-./path/to/wieldymarkup -r -d example/
-```
-
-Add a second directory argument to compile all `.wml` files into `.html` files in a separate file tree.
-
-```shell
-./path/to/wieldymarkup -r -d example-wml/ example-html/
-```
-
-Use `-v` or `--verbose` for more messages in the console.
+2. Use the `-m` or `--mirror` option and list an input directory and output directory, in that order. WieldyJS will find all `.wml` files in the input directory and compile them to `.html` files in the output directory.
 
 ## Node Usage
 
+This will fail if any files do not have the `.wml` extension. Use `-f` or `--force` anywhere to fail silently.
+
 ```javascript
 var fs = require('fs');
-var Compiler = require('wieldymarkup');
+var Compiler = require('wieldyjs');
 
 // Just a one-off
 fs.readFile('/path/to/file', 'utf8', function(err, data) {
@@ -58,7 +49,7 @@ fs.readFile('/path/to/file', 'utf8', function(err, data) {
   var compressed_html = new Compiler(data, true).output;
 });
 
-# Or a little more flexible
+// Or a little more flexible
 var c = new Compiler();
 fs.readFile('/path/to/file', 'utf8', function(err, data) {
   if (err) { return console.log(err); }
@@ -72,13 +63,12 @@ fs.readFile('/path/to/file', 'utf8', function(err, data) {
 
 ```shell
 cd /path/to/wieldymarkup
-npm install mocha
 mocha
 ```
 
-## Indicative Example
+## WieldyMarkup Syntax:
 
-### WieldyMarkup:
+### WML:
 
 ```
 `<!DOCTYPE html>
@@ -104,7 +94,7 @@ html lang=en
           sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.>
 ```
 
-### Corresponding HTML Output:
+### HTML:
 
 ```html
 <!DOCTYPE html>

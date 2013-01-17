@@ -1,0 +1,223 @@
+#!/usr/bin/env node
+
+var Compiler = require('../lib/wieldyjs').Compiler;
+var _ = require('underscore');
+var findit = require('findit');
+var fs = require('fs');
+
+var Commander = function(args) {
+  
+  var getOutputFile = function(inputDir, outputDir, file) {
+    subTreeSections = path.split(file).slice(path.split(inputDir).length);
+    subTreeSections.pop();
+    subTree = path.join(subTreeSections);
+    fileBaseName = path.basename(file, '.wml');
+    return path.join(outputDir, subTree, fileBaseName + '.html');
+  };
+  
+  var makeDirsForPath = function(path, verbose) {
+    var pathSections = path.split('/');
+    pathSections.pop();
+    if(pathSections[0] == '') {
+      pathSections.shift();
+    }
+    var tempPath, stats;
+    for(var i = 0; pathSections[i]; i++) {
+      tempPath = '/' + pathSections.slice(0, i+1).join('/');
+      if(!fs.existsSync(tempPath)) {
+        if(verbose) {
+          console.log("Creating directory " + tempPath);
+        }
+        fs.mkdirSync(tempPath);
+      }
+    }
+  };
+  
+  var self = this;
+  
+  this.init = function(args) {
+    this.verbose = false;
+    this.compress = false;
+    this.recursive = false;
+    
+    var help = false;
+    var mirror = false;
+    
+    if(args.indexOf("-h") + args.indexOf("--help") > -2) {
+      help = true;
+    }
+    
+    if(args.indexOf("-v") + args.indexOf("--verbose") > -2) {
+      this.verbose = true;
+    }
+    if(args.indexOf("-c") + args.indexOf("--compress") > -2) {
+      this.compress = true;
+      if(this.verbose) {
+        console.log("Compression mode detected.");
+      }
+    }
+    if(args.indexOf("-r") + args.indexOf("--recursive") > -2) {
+      this.recursive = true;
+      if(this.verbose) {
+        console.log("Recursive mode detected.");
+      }
+    }
+    if(args.indexOf("-m") + args.indexOf("--mirror") > -2) {
+      var mirror = true;
+      if(this.verbose) {
+        console.log("Mirrored mode detected.");
+      }
+    }
+    
+    filteredArgs = _.reject(args, function(arg) { return arg[0] === '-' });
+    
+    if(help || filteredArgs.length === 0) {
+      this.showHelp();
+    } else if(mirror) {
+      if(filteredArgs.length !== 2) {
+        return console.log([
+          "There must be exactly two path arguments for mirrored mored. ",
+          "Exiting."
+          ].join(""));
+      } else {
+        this.processMirroredFileTree(filteredArgs);
+      }
+    } else {
+      this.processPathList(filteredArgs);
+    }
+  };
+  
+  this.showHelp = function() {
+    console.log([
+      "",
+      "WieldyJS: WieldyMarkup Compiler for Node",
+      "",
+      "Usage:",
+      "  wieldyjs [options]* [(file | dir)* | ((-m | --mirror) in-dir out-dir)]",
+      "",
+      "Usage Syntax:",
+      "  `[` and `]` denote optional groups",
+      "  `(` and `)` denote semantic groups",
+      "  `*` denotes 0 or more of the preceeding entity",
+      "  `|` denotes OR relationship between preceeding and proceeding entities",
+      "",
+      "Global Options:",
+      "  -h OR --help        Show this help message.",
+      "  -v OR --verbose     Display messages describing compiler behavior.",
+      "  -c OR --compress    Output HTML files without whitespace between tags.",
+      "  -r OR --recursive   Search recursively inside directories for .wml files.",
+      ""
+    ].join("\n  "));
+  };
+  
+  this.processPathList = function(args) {
+    if(this.verbose) {
+      console.log("Processing as path list.");
+    }
+    
+    _.each(args, function(arg) {
+      if(!fs.existsSync(arg)) {
+        // TODO: Add verbose message
+        return;
+      }
+      if(fs.statSync(arg).isDirectory()) {
+        if(self.recursive) {
+          findit(arg).on('file', function (file) {
+            if(path.extname(file) !== '.wml') {
+              return;
+            }
+            self.compileFromPath(file, getOutputFile(arg, arg, file));
+          });
+        
+        } else {
+          fs.readdir(arg, function (err, files) {
+            if (err) {
+              return console.log(err);
+            }
+            _.each(files, function(file) {
+              if(path.extname(file) !== '.wml') {
+                return;
+              }
+              self.compileFromPath(file, getOutputFile(arg, arg, file));
+            });
+          });
+        }
+      } else {
+        if(path.extname(arg) !== '.wml') {
+          return;
+        }
+        self.compileFromPath(arg, arg.substr(0, arg.length - 4) + '.html');
+      }
+    });
+  };
+  
+  this.processMirroredFileTree = function(args) {
+    if(this.verbose) {
+      console.log("Processing as mirrored file tree.");
+    }
+    
+    var inputDir = path.normalize(args[0]);
+    var outputDir = path.normalize(args[1]);
+    var cwd = process.cwd();
+    
+    if(inputDir[0] !== '/' && inputDir.search(/^[a-zA-Z]:[\\\/]/) === 0) {
+      inputDir = path.join(cwd, inputDir);
+    }
+    if(!fs.existsSync(inputDir)) {
+      return console.log("Input directory does not exist. Exiting.");
+    }
+    if(!fs.statSync(inputDir).isDirectory()) {
+      return console.log("Input directory is not a directory. Exiting.");
+    }
+    if(this.verbose) {
+      console.log("Input directory confirmed.");
+    }
+    
+    if(outputDir[0] !== '/' && outputDir.search(/^[a-zA-Z]:[\\\/]/) === 0) {
+      outputDir = path.join(cwd, outputDir);
+    }
+    if(this.verbose) {
+      console.log("Output directory confirmed.");
+    }
+    
+    if(this.recursive) {
+      findit(inputDir).on('file', function (file) {
+        if(path.extname(file) !== '.wml') {
+          return;
+        }
+        self.compileFromPath(file, getOutputFile(inputDir, outputDir, file));
+      });
+    
+    } else {
+      fs.readdir(inputDir, function (err, files) {
+        if (err) {
+          return console.log(err);
+        }
+        _.each(files, function(file) {
+          if(path.extname(file) !== '.wml') {
+            return;
+          }
+          self.compileFromPath(file, getOutputFile(inputDir, outputDir, file));
+        });
+      });
+    }
+  };
+  
+  this.compileFromPath = function(file, output) {
+    fs.readFile(file, 'utf8', function(err, data) {
+      if (err) { return console.log(err); }
+      
+      var html = new Compiler(data, self.compress).output;
+      makeDirsForPath(output, self.verbose);
+      
+      if(self.verbose) {
+        console.log("Compiling " + output);
+      }
+      fs.writeFile(output, html);
+    });
+  };
+  
+  this.init(args);
+}
+
+new Commander(process.argv.slice(2));

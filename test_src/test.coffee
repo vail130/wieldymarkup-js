@@ -1,5 +1,5 @@
 expect = require('chai').expect
-Compiler = require('../lib/wieldymarkup').Compiler
+Compiler = require('../lib/wieldyjs').Compiler
 
 describe 'Compiler', ->
   
