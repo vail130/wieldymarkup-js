@@ -36,8 +36,6 @@ There are two main ways to use WieldyJS:
 
 ## Node Usage
 
-This will fail if any files do not have the `.wml` extension. Use `-f` or `--force` anywhere to fail silently.
-
 ```javascript
 var fs = require('fs');
 var Compiler = require('wieldyjs');
