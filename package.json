@@ -1,10 +1,9 @@
 {
   "name": "wieldyjs",
-  "version": "0.2.2",
+  "version": "0.2.4",
   "description": "WieldyMarkup HTML Abstraction Markup Language Compiler",
   "homepage": "https://github.com/vail130/wieldymarkup-js",
   "main": "lib/wieldyjs",
-  "preferGlobal": "true",
   "bin": {
     "wieldyjs": "bin/wieldyjs"
   },

@@ -372,5 +372,4 @@ class WieldyJS
     @
 
 exports = module.exports =
-  version: '0.2.2'
   Compiler: WieldyJS

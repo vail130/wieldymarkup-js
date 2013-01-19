@@ -1,10 +1,21 @@
 
-# WieldyMarkup - Template-agnostic markup that's clean and compiles to HTML
+# WieldyMarkup [![Build Status](https://secure.travis-ci.org/vail130/wieldymarkup-js.png)](http://travis-ci.org/vail130/wieldymarkup-js)
+
+## Template-agnostic markup that's clean and compiles to HTML
+
+Check out the grunt task for wieldyjs: (https://github.com/vail130/grunt-wieldyjs)
+Use it with [Yeoman](http://yeoman.io)!
+
+Ruby: (https://github.com/vail130/wieldymarkup-ruby)
+Python: (https://github.com/vail130/wieldymarkup-python)
 
 ## Installation
 
+* Use the `-g` flag for a global installation
+
 ```shell
-npm install wieldyjs -g
+cd /path/to/project
+npm install wieldyjs
 wieldyjs
 
 WieldyJS: WieldyMarkup Compiler for Node
@@ -23,6 +34,12 @@ WieldyJS: WieldyMarkup Compiler for Node
     -v OR --verbose     Display messages describing compiler behavior.
     -c OR --compress    Output HTML files without whitespace between tags.
     -r OR --recursive   Search recursively inside directories for .wml files.
+    -m OR --mirror      Mirror directory tree inside of in-dir into out-dir (paths may be relative or absolute)
+  
+  Examples:
+    wieldyjs -c -r -m src/ dest/
+    wieldyjs -r /Users/user/Projects/project/templates/
+    wieldyjs templates/file1.wml templates/file2.wml templates/dir1
   
 ```
 
@@ -36,25 +53,22 @@ There are two main ways to use WieldyJS:
 
 ## Node Usage
 
-```javascript
-var fs = require('fs');
-var Compiler = require('wieldyjs');
+```js
+var fs = require('fs')
+  , Compiler = require('wieldyjs').Compiler
 
-// Just a one-off
-fs.readFile('/path/to/file', 'utf8', function(err, data) {
-  if (err) { return console.log(err); }
-  var html = new Compiler(data).output;
-  var compressed_html = new Compiler(data, true).output;
-});
+  // Just a one-off
+  , data = fs.readFileSync('/path/to/file', 'utf8')
+  , html = new Compiler(data).output
+  , compressed_html = new Compiler(data, true).output
 
-// Or a little more flexible
-var c = new Compiler();
-fs.readFile('/path/to/file', 'utf8', function(err, data) {
-  if (err) { return console.log(err); }
-  var html = c.compile(data).output;
-  var compressed_html = c.compile(data, true).output;
-  var html_again = c.compile(data, false).output;
-});
+  // Or a little more flexible
+  , c = new Compiler()
+  , data = fs.readFileSync('/path/to/file', 'utf8')
+  , html = c.compile(data).output
+  , compressed_html = c.compile(data, true).output
+  , html_again = c.compile(data, false).output
+  ;
 ```
 
 ## Testing

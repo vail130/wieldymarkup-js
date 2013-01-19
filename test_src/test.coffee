@@ -1,5 +1,6 @@
 expect = require('chai').expect
 Compiler = require('../lib/wieldyjs').Compiler
+Commander = require('../bin/wieldyjs').Commander
 
 describe 'Compiler', ->
   
@@ -52,7 +53,7 @@ describe 'Compiler', ->
       
       line = "\n  div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
       expect(Compiler.getLeadingWhitespaceFromText line).to.equal ""
-  
+
 
 describe 'Compiler.prototype', ->
   
@@ -292,3 +293,55 @@ describe 'Compiler.prototype', ->
       c.innerText = "<%= val1 %>"
       c.addHtmlToOutput()
       expect(c.output).to.equal '<span><%= val1 %></span>'
+
+
+describe 'Commander', ->
+  
+  describe '#getOutputFile(inputDir, outputDir, inputFile)', ->
+    it 'should return output filename based on input dir, output dir, and input filename', ->
+      inputDir = '/Users/user/Projects/project/templates'
+      outputDir = '/Users/user/Projects/project/templates'
+      inputFile = '/Users/user/Projects/project/templates/file1.wml'
+      expect(
+        Commander.getOutputFile inputDir, outputDir, inputFile
+      ).to.equal '/Users/user/Projects/project/templates/file1.html'
+      
+      inputDir = '/Users/user/Projects/project/templates_src'
+      outputDir = '/Users/user/Projects/project/templates_dest'
+      inputFile = '/Users/user/Projects/project/templates_src/file1.wml'
+      expect(
+        Commander.getOutputFile inputDir, outputDir, inputFile
+      ).to.equal '/Users/user/Projects/project/templates_dest/file1.html'
+  
+  describe '#getDirsForPath(filePath)', ->
+    it 'should return an array of directories that a filePath requires to resolve', ->
+      filePath = '/Users/user/Projects/project/templates/file1.wml'
+      result = Commander.getDirsForPath filePath
+      expect(result).to.be.a 'Array'
+      expect(result).to.have.length 5
+      
+      filePath = '/.__WIELDYJSTESTDIR/user'
+      result = Commander.getDirsForPath filePath
+      expect(result).to.be.a 'Array'
+      expect(result).to.have.length 1
+
+
+describe 'Commander.prototype', ->
+  
+  describe '#init([args])', ->
+    it 'should set instance variables to determine behavior', ->
+      c = new Commander ['-h', '-v', '-c', '-m']
+      expect(c).to.have.property 'init'
+      expect(c.help and c.verbose and c.compress and c.mirror).to.equal true
+      expect(c.args).to.have.length 0
+      
+      c = new Commander ['-h', '--verbose']
+      expect(c.help and c.verbose).to.equal true
+      expect(c.compress or c.mirror).to.equal false
+      expect(c.args).to.have.length 0
+      
+      c = new Commander ['--help', '--verbose', '--compress', '--mirror']
+      expect(c.help and c.verbose and c.compress and c.mirror).to.equal true
+      expect(c.args).to.have.length 0
+      
+  

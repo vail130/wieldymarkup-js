@@ -1,89 +1,75 @@
 #!/usr/bin/env node
 
-var Compiler = require('../lib/wieldyjs').Compiler;
-var _ = require('underscore');
-var findit = require('findit');
-var fs = require('fs');
+var Compiler = require('../lib/wieldyjs').Compiler
+  , _ = require('underscore')
+  , findit = require('findit')
+  , fs = require('fs')
+  , path = require('path')
+  , existsSync = (typeof fs.existsSync === 'function'
+      ? fs.existsSync
+      : path.existsSync);
 
 var Commander = function(args) {
   
-  var getOutputFile = function(inputDir, outputDir, file) {
-    subTreeSections = path.split(file).slice(path.split(inputDir).length);
-    subTreeSections.pop();
-    subTree = path.join(subTreeSections);
-    fileBaseName = path.basename(file, '.wml');
-    return path.join(outputDir, subTree, fileBaseName + '.html');
-  };
-  
-  var makeDirsForPath = function(path, verbose) {
-    var pathSections = path.split('/');
-    pathSections.pop();
-    if(pathSections[0] == '') {
-      pathSections.shift();
-    }
-    var tempPath, stats;
-    for(var i = 0; pathSections[i]; i++) {
-      tempPath = '/' + pathSections.slice(0, i+1).join('/');
-      if(!fs.existsSync(tempPath)) {
-        if(verbose) {
-          console.log("Creating directory " + tempPath);
-        }
-        fs.mkdirSync(tempPath);
-      }
-    }
-  };
-  
   var self = this;
+  this.args = args || [];
   
   this.init = function(args) {
+    if(args) {
+      this.args = args;
+    }
     this.verbose = false;
     this.compress = false;
     this.recursive = false;
+    this.help = false
+    this.mirror = false;
     
-    var help = false;
-    var mirror = false;
-    
-    if(args.indexOf("-h") + args.indexOf("--help") > -2) {
-      help = true;
+    if(this.args.indexOf("-h") + this.args.indexOf("--help") > -2) {
+      this.help = true;
     }
     
-    if(args.indexOf("-v") + args.indexOf("--verbose") > -2) {
+    if(this.args.indexOf("-v") + this.args.indexOf("--verbose") > -2) {
       this.verbose = true;
     }
-    if(args.indexOf("-c") + args.indexOf("--compress") > -2) {
+    if(this.args.indexOf("-c") + this.args.indexOf("--compress") > -2) {
       this.compress = true;
       if(this.verbose) {
         console.log("Compression mode detected.");
       }
     }
-    if(args.indexOf("-r") + args.indexOf("--recursive") > -2) {
+    if(this.args.indexOf("-r") + this.args.indexOf("--recursive") > -2) {
       this.recursive = true;
       if(this.verbose) {
         console.log("Recursive mode detected.");
       }
     }
-    if(args.indexOf("-m") + args.indexOf("--mirror") > -2) {
-      var mirror = true;
+    if(this.args.indexOf("-m") + this.args.indexOf("--mirror") > -2) {
+      this.mirror = true;
       if(this.verbose) {
         console.log("Mirrored mode detected.");
       }
     }
     
-    filteredArgs = _.reject(args, function(arg) { return arg[0] === '-' });
+    this.args = _.reject(
+      this.args,
+      function(arg) {
+        return arg[0] === '-';
+      }
+    );
     
-    if(help || filteredArgs.length === 0) {
+    if(this.help || this.args.length === 0) {
       this.showHelp();
-    } else if(mirror) {
-      if(filteredArgs.length !== 2) {
+    } else if(this.mirror) {
+      if(this.args.length !== 2) {
         return console.log([
-          "There must be exactly two path arguments for mirrored mored. ",
+          "There must be exactly two path arguments for mirrored mode. ",
           "Exiting."
           ].join(""));
       } else {
-        this.processMirroredFileTree(filteredArgs);
+        this.processMirroredFileTree();
       }
     } else {
-      this.processPathList(filteredArgs);
+      this.processPathList();
     }
   };
   
@@ -93,31 +79,45 @@ var Commander = function(args) {
       "WieldyJS: WieldyMarkup Compiler for Node",
       "",
       "Usage:",
-      "  wieldyjs [options]* [(file | dir)* | ((-m | --mirror) in-dir out-dir)]",
+      "  wieldyjs [options]* [" +
+          "(file | dir)* | ((-m | --mirror) in-dir out-dir)" +
+          "]",
       "",
       "Usage Syntax:",
       "  `[` and `]` denote optional groups",
       "  `(` and `)` denote semantic groups",
       "  `*` denotes 0 or more of the preceeding entity",
-      "  `|` denotes OR relationship between preceeding and proceeding entities",
+      "  `|` denotes OR relationship between preceeding and proceeding " +
+          "entities",
       "",
       "Global Options:",
-      "  -h OR --help        Show this help message.",
-      "  -v OR --verbose     Display messages describing compiler behavior.",
-      "  -c OR --compress    Output HTML files without whitespace between tags.",
-      "  -r OR --recursive   Search recursively inside directories for .wml files.",
+      "  -h OR --help         Show this help message.",
+      "  -v OR --verbose      Display messages describing compiler behavior.",
+      "  -c OR --compress     Output HTML files without whitespace between " +
+                              "tags.",
+      "  -r OR --recursive    Search recursively inside directories for " +
+                              ".wml files.",
+      "  -m OR --mirror       Mirror directory tree inside of in-dir into " +
+                              "out-dir (paths may be relative or absolute)",
+      "",
+      "Examples:",
+      "  wieldyjs -c -r -m src/ dest/",
+      "  wieldyjs -r /Users/user/Projects/project/templates/",
+      "  wieldyjs templates/file1.wml templates/file2.wml templates/dir1",
       ""
     ].join("\n  "));
   };
   
-  this.processPathList = function(args) {
+  this.processPathList = function() {
     if(this.verbose) {
       console.log("Processing as path list.");
     }
     
-    _.each(args, function(arg) {
-      if(!fs.existsSync(arg)) {
-        // TODO: Add verbose message
+    _.each(this.args, function(arg) {
+      if(!existsSync(arg)) {
+        if(this.verbose) {
+          console.log("Path does not exist: " + arg);
+        }
         return;
       }
       if(fs.statSync(arg).isDirectory()) {
@@ -126,20 +126,18 @@ var Commander = function(args) {
             if(path.extname(file) !== '.wml') {
               return;
             }
-            self.compileFromPath(file, getOutputFile(arg, arg, file));
+            self.compileFromPath(
+              file, self.constructor.getOutputFile(arg, arg, file)
+            );
           });
-        
         } else {
-          fs.readdir(arg, function (err, files) {
-            if (err) {
-              return console.log(err);
+          _.each(fs.readdirSync(arg), function(file) {
+            if(path.extname(file) !== '.wml') {
+              return;
             }
-            _.each(files, function(file) {
-              if(path.extname(file) !== '.wml') {
-                return;
-              }
-              self.compileFromPath(file, getOutputFile(arg, arg, file));
-            });
+            self.compileFromPath(
+              file, self.constructor.getOutputFile(arg, arg, file)
+            );
           });
         }
       } else {
@@ -151,19 +149,19 @@ var Commander = function(args) {
     });
   };
   
-  this.processMirroredFileTree = function(args) {
+  this.processMirroredFileTree = function() {
     if(this.verbose) {
       console.log("Processing as mirrored file tree.");
     }
     
-    var inputDir = path.normalize(args[0]);
-    var outputDir = path.normalize(args[1]);
-    var cwd = process.cwd();
+    var inputDir = path.normalize(this.args[0])
+      , outputDir = path.normalize(this.args[1])
+      , cwd = process.cwd();
     
     if(inputDir[0] !== '/' && inputDir.search(/^[a-zA-Z]:[\\\/]/) === 0) {
       inputDir = path.join(cwd, inputDir);
     }
-    if(!fs.existsSync(inputDir)) {
+    if(!existsSync(inputDir)) {
       return console.log("Input directory does not exist. Exiting.");
     }
     if(!fs.statSync(inputDir).isDirectory()) {
@@ -185,39 +183,80 @@ var Commander = function(args) {
         if(path.extname(file) !== '.wml') {
           return;
         }
-        self.compileFromPath(file, getOutputFile(inputDir, outputDir, file));
+        self.compileFromPath(
+          file, self.constructor.getOutputFile(inputDir, outputDir, file)
+        );
       });
     
     } else {
-      fs.readdir(inputDir, function (err, files) {
-        if (err) {
-          return console.log(err);
+      _.each(fs.readdirSync(inputDir), function(file) {
+        if(path.extname(file) !== '.wml') {
+          return;
         }
-        _.each(files, function(file) {
-          if(path.extname(file) !== '.wml') {
-            return;
-          }
-          self.compileFromPath(file, getOutputFile(inputDir, outputDir, file));
-        });
+        self.compileFromPath(
+          file, self.constructor.getOutputFile(inputDir, outputDir, file)
+        );
       });
     }
   };
   
   this.compileFromPath = function(file, output) {
-    fs.readFile(file, 'utf8', function(err, data) {
-      if (err) { return console.log(err); }
-      
-      var html = new Compiler(data, self.compress).output;
-      makeDirsForPath(output, self.verbose);
-      
-      if(self.verbose) {
-        console.log("Compiling " + output);
-      }
-      fs.writeFile(output, html);
-    });
+    var data = fs.readFileSync(file, 'utf8')
+      , html = new Compiler(data, self.compress).output
+      , dirArray = self.constructor.getDirsForPath(output, self.verbose)
+      ;
+    
+    self.constructor.makeDirsInArray(dirArray);
+    if(self.verbose) {
+      console.log("Compiling " + output);
+    }
+    fs.writeFile(output, html);
   };
   
-  this.init(args);
+  this.init();
 }
 
-new Commander(process.argv.slice(2));
+Commander.getOutputFile = function(inputDir, outputDir, inputFile) {
+  inputFile = path.normalize(inputFile);
+  var subTreeSections = inputFile.split('/').slice((inputDir).split('/').length);
+  subTreeSections.pop();
+  var subTree = path.join(subTreeSections)
+    , fileBaseName = path.basename(inputFile, '.wml');
+  return path.join(outputDir, subTree, fileBaseName + '.html');
+};
+  
+Commander.getDirsForPath = function(filePath, verbose) {
+  var pathSections = filePath.split('/');
+  pathSections.pop();
+  if(pathSections[0] == '') {
+    pathSections.shift();
+  }
+  var dirArray = [];
+  for(var i = 0; pathSections[i]; i++) {
+    dirArray.push('/' + pathSections.slice(0, i+1).join('/'));
+  }
+  return dirArray;
+};
+
+Commander.makeDirsInArray = function(dirArray) {
+  var dirExists = true;
+  for(var i = 0; dirArray[i]; i++) {
+    if(dirExists && !existsSync(dirArray[i])) {
+      dirExists = false;
+    }
+    if(!dirExists) {
+      if(verbose) {
+        console.log("Creating directory " + dirArray[i]);
+      }
+      fs.mkdirSync(dirArray[i]);
+    }
+  }
+}
+
+if(require.main === module) {
+  new Commander(process.argv.slice(2));
+} else {
+  var exports = module.exports = {
+    Commander: Commander
+  };
+}
