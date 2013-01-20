@@ -9,7 +9,7 @@
   Commander = require('../bin/wieldyjs').Commander;
 
   describe('Compiler', function() {
-    describe('#removeGroupedText()', function() {
+    describe('#removeGroupedText(text, groupingToken)', function() {
       return it('should return text with substrings surrounded by the second parameter removed', function() {
         var sample;
         sample = "The cat ran 'into the big 'home!";
@@ -20,7 +20,7 @@
         return expect(Compiler.removeGroupedText(sample, "`")).to.equal("The cat ran home!");
       });
     });
-    describe('#getSelectorFromLine()', function() {
+    describe('#getSelectorFromLine(line)', function() {
       return it('should return the selector string from a line', function() {
         var line;
         line = "div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>";
@@ -31,7 +31,7 @@
         return expect(Compiler.getSelectorFromLine(line)).to.equal(".class#id.class2");
       });
     });
-    describe('#getTagNestLevel()', function() {
+    describe('#getTagNestLevel(text, openString, closeString)', function() {
       return it('should return the level of nesting in a string given open and close substrings', function() {
         var text;
         text = "  <div>";
@@ -46,8 +46,8 @@
         return expect(Compiler.getTagNestLevel(text, '{{', '}}')).to.equal(0);
       });
     });
-    return describe('#getLeadingWhitespaceFromText()', function() {
-      return it('should return ', function() {
+    return describe('#getLeadingWhitespaceFromText(text)', function() {
+      return it('should return leading whitespace form text', function() {
         var line;
         line = "    `<div class='class' id='id'>Content goes here</div>";
         expect(Compiler.getLeadingWhitespaceFromText(line)).to.equal("    ");
@@ -60,7 +60,7 @@
   });
 
   describe('Compiler.prototype', function() {
-    describe('#constructor', function() {
+    describe('#constructor(text, compress)', function() {
       return it('should set correct initial instance variables', function() {
         var c;
         c = new Compiler;
@@ -71,6 +71,21 @@
         expect(c.currentLevel).to.equal(0);
         expect(c.previousLevel).to.equal(null);
         expect(c.lineNumber).to.equal(0);
+        expect(c.openTags).to.be.a('Array');
+        return expect(c.openTags).to.have.length(0);
+      });
+    });
+    describe('#compile(text, compress)', function() {
+      return it('should set correct initial instance variables and return output', function() {
+        var c;
+        c = new Compiler;
+        expect(c.compile('a#link.link-class href=# <Hello>')).to.equal('<a id="link" class="link-class" href="#">Hello</a>\n');
+        expect(c.text).to.equal('');
+        expect(c.compress).to.equal(false);
+        expect(c.indentToken).to.equal('');
+        expect(c.currentLevel).to.equal(0);
+        expect(c.previousLevel).to.equal(0);
+        expect(c.lineNumber).to.equal(1);
         expect(c.openTags).to.be.a('Array');
         return expect(c.openTags).to.have.length(0);
       });
@@ -138,7 +153,7 @@
         return expect(c.output).to.equal("</span></div></div>");
       });
     });
-    describe('#processEmbeddedLine()', function() {
+    describe('#processEmbeddedLine(line)', function() {
       return it('should add unchanged line to output with ` removed', function() {
         var c;
         c = new Compiler;
@@ -158,7 +173,7 @@
         return expect(c.output).to.equal("<div>");
       });
     });
-    describe('#processSelector()', function() {
+    describe('#processSelector(selector)', function() {
       return it('should parse a selector string into components', function() {
         var c;
         c = new Compiler;
@@ -184,7 +199,7 @@
         return expect(c.tagClasses[0]).to.equal("class");
       });
     });
-    describe('#processAttributes()', function() {
+    describe('#processAttributes(restOfLine)', function() {
       return it('should parse attribute string into components and return the rest of the text', function() {
         var c, rest_of_line;
         c = new Compiler;
@@ -251,7 +266,7 @@
       c.processNextLine();
       return expect(c.output).to.equal('<div>\n  <a href="#" target="_blank">\n    <span>asdf</span>\n');
     });
-    return describe('#add_html_to_output()', function() {
+    return describe('#addHtmlToOutput()', function() {
       return it('should add HTML to output correctly based on parsed tag data', function() {
         var c;
         c = new Compiler;

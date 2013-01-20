@@ -65,9 +65,9 @@ var fs = require('fs')
   // Or a little more flexible
   , c = new Compiler()
   , data = fs.readFileSync('/path/to/file', 'utf8')
-  , html = c.compile(data).output
-  , compressed_html = c.compile(data, true).output
-  , html_again = c.compile(data, false).output
+  , html = c.compile(data)
+  , compressed_html = c.compile(data, true)
+  , html_again = c.compile(data, false)
   ;
 ```
 

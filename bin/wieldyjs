@@ -9,15 +9,18 @@ var Compiler = require('../lib/wieldyjs').Compiler
       ? fs.existsSync
       : path.existsSync);
 
+/**
+ * Executes commands from terminal
+ * 
+ * @param <Array> args - Command line arguments
+ */
 var Commander = function(args) {
   
   var self = this;
   this.args = args || [];
   
-  this.init = function(args) {
-    if(args) {
-      this.args = args;
-    }
+  // Parses arguments and take appropriate actions
+  this.init = function() {
     this.verbose = false;
     this.compress = false;
     this.recursive = false;
@@ -73,6 +76,7 @@ var Commander = function(args) {
     }
   };
   
+  // Display helpful information in the terminal
   this.showHelp = function() {
     console.log([
       "",
@@ -108,6 +112,7 @@ var Commander = function(args) {
     ].join("\n  "));
   };
   
+  // Iterate through file and directory paths, compiling files
   this.processPathList = function() {
     if(this.verbose) {
       console.log("Processing as path list.");
@@ -149,6 +154,7 @@ var Commander = function(args) {
     });
   };
   
+  // Compile all files in one directory tree into another
   this.processMirroredFileTree = function() {
     if(this.verbose) {
       console.log("Processing as mirrored file tree.");
@@ -200,13 +206,18 @@ var Commander = function(args) {
     }
   };
   
+  /** Compile file at given path
+   *
+   * @param <String> file - Path of file to compile
+   * @param <String> output - Path of file to create
+   */
   this.compileFromPath = function(file, output) {
     var data = fs.readFileSync(file, 'utf8')
       , html = new Compiler(data, self.compress).output
-      , dirArray = self.constructor.getDirsForPath(output, self.verbose)
+      , dirArray = self.constructor.getDirsForPath(output)
       ;
     
-    self.constructor.makeDirsInArray(dirArray);
+    self.constructor.makeDirsInArray(dirArray, self.verbose);
     if(self.verbose) {
       console.log("Compiling " + output);
     }
@@ -216,6 +227,14 @@ var Commander = function(args) {
   this.init();
 }
 
+/**
+ * Determine path of output file.
+ *
+ * @param <String> inputDir - Path of directory from which to compile file
+ * @param <String> outputDir - Path of directory into which to compile file
+ * @param <String> inputFile - Path of file to compile
+ * @return <String> outputFile - Path of file to create 
+ */
 Commander.getOutputFile = function(inputDir, outputDir, inputFile) {
   inputFile = path.normalize(inputFile);
   var subTreeSections = inputFile.split('/').slice((inputDir).split('/').length);
@@ -225,7 +244,13 @@ Commander.getOutputFile = function(inputDir, outputDir, inputFile) {
   return path.join(outputDir, subTree, fileBaseName + '.html');
 };
   
-Commander.getDirsForPath = function(filePath, verbose) {
+/**
+ * Determine path of output file.
+ *
+ * @param <String> filePath - Path of from which to determine directories
+ * @return <Array> dirArray - Array of directorys that must exist for a file
+ */
+Commander.getDirsForPath = function(filePath) {
   var pathSections = filePath.split('/');
   pathSections.pop();
   if(pathSections[0] == '') {
@@ -238,19 +263,25 @@ Commander.getDirsForPath = function(filePath, verbose) {
   return dirArray;
 };
 
-Commander.makeDirsInArray = function(dirArray) {
+/**
+ * Create directories that do not exist from a list.
+ *
+ * @param <Array> dirArray - Array of directories to create if necessary
+ * @param <Boolean> verbose - Whether to log extra messages
+ */
+Commander.makeDirsInArray = function(dirArray, verbose) {
   var dirExists = true;
-  for(var i = 0; dirArray[i]; i++) {
-    if(dirExists && !existsSync(dirArray[i])) {
+  _.each(dirArray, function(dir) {
+    if(dirExists && !existsSync(dir)) {
       dirExists = false;
     }
     if(!dirExists) {
       if(verbose) {
-        console.log("Creating directory " + dirArray[i]);
+        console.log("Creating directory " + dir);
       }
-      fs.mkdirSync(dirArray[i]);
+      fs.mkdirSync(dir);
     }
-  }
+  });
 }
 
 if(require.main === module) {

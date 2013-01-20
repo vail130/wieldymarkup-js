@@ -4,7 +4,7 @@ Commander = require('../bin/wieldyjs').Commander
 
 describe 'Compiler', ->
   
-  describe '#removeGroupedText()', ->
+  describe '#removeGroupedText(text, groupingToken)', ->
     it 'should return text with substrings surrounded by the second parameter removed', ->
       sample = "The cat ran 'into the big 'home!"
       expect(Compiler.removeGroupedText sample, "'").to.equal "The cat ran home!"
@@ -15,7 +15,7 @@ describe 'Compiler', ->
       sample = "The cat ran `into the big `home!"
       expect(Compiler.removeGroupedText sample, "`").to.equal "The cat ran home!"
   
-  describe '#getSelectorFromLine()', ->
+  describe '#getSelectorFromLine(line)', ->
     it 'should return the selector string from a line', ->
       line = "div.class#id data-val=val data-val2=<%= val2 %> <Content <i>haya!</i> goes here>"
       expect(Compiler.getSelectorFromLine line).to.equal "div.class#id"
@@ -26,7 +26,7 @@ describe 'Compiler', ->
       line = ".class#id.class2 val=val1"
       expect(Compiler.getSelectorFromLine line).to.equal ".class#id.class2"
   
-  describe '#getTagNestLevel()', ->
+  describe '#getTagNestLevel(text, openString, closeString)', ->
     it 'should return the level of nesting in a string given open and close substrings', ->
       text = "  <div>"
       expect(Compiler.getTagNestLevel text).to.equal 0
@@ -43,8 +43,8 @@ describe 'Compiler', ->
       text = "  {{div {{la;sdfajsd;f}} dfajsl;fadfl   }}"
       expect(Compiler.getTagNestLevel text, '{{', '}}').to.equal 0
   
-  describe '#getLeadingWhitespaceFromText()', ->
-    it 'should return ', ->
+  describe '#getLeadingWhitespaceFromText(text)', ->
+    it 'should return leading whitespace form text', ->
       line = "    `<div class='class' id='id'>Content goes here</div>"
       expect(Compiler.getLeadingWhitespaceFromText line).to.equal "    "
       
@@ -57,7 +57,7 @@ describe 'Compiler', ->
 
 describe 'Compiler.prototype', ->
   
-  describe '#constructor', ->
+  describe '#constructor(text, compress)', ->
     it 'should set correct initial instance variables', ->
       c = new Compiler
       
@@ -68,6 +68,23 @@ describe 'Compiler.prototype', ->
       expect(c.currentLevel).to.equal 0
       expect(c.previousLevel).to.equal null
       expect(c.lineNumber).to.equal 0
+      
+      expect(c.openTags).to.be.a 'Array'
+      expect(c.openTags).to.have.length 0
+  
+  describe '#compile(text, compress)', ->
+    it 'should set correct initial instance variables and return output', ->
+      c = new Compiler
+      
+      expect(
+        c.compile 'a#link.link-class href=# <Hello>'
+      ).to.equal '<a id="link" class="link-class" href="#">Hello</a>\n'
+      expect(c.text).to.equal ''
+      expect(c.compress).to.equal false
+      expect(c.indentToken).to.equal ''
+      expect(c.currentLevel).to.equal 0
+      expect(c.previousLevel).to.equal 0
+      expect(c.lineNumber).to.equal 1
       
       expect(c.openTags).to.be.a 'Array'
       expect(c.openTags).to.have.length 0
@@ -141,7 +158,7 @@ describe 'Compiler.prototype', ->
       c.closeLowerLevelTags()
       expect(c.output).to.equal "</span></div></div>"
   
-  describe '#processEmbeddedLine()', ->
+  describe '#processEmbeddedLine(line)', ->
     it 'should add unchanged line to output with ` removed', ->
       c = new Compiler
       c.currentLevel = 2
@@ -161,7 +178,7 @@ describe 'Compiler.prototype', ->
       c.processEmbeddedLine "`<div>"
       expect(c.output).to.equal "<div>"
   
-  describe '#processSelector()', ->
+  describe '#processSelector(selector)', ->
     it 'should parse a selector string into components', ->
       c = new Compiler
       c.processSelector "div"
@@ -187,7 +204,7 @@ describe 'Compiler.prototype', ->
       expect(c.tagClasses).to.have.length 1
       expect(c.tagClasses[0]).to.equal "class"
   
-  describe '#processAttributes()', ->
+  describe '#processAttributes(restOfLine)', ->
     it 'should parse attribute string into components and return the rest of the text', ->
       c = new Compiler
       rest_of_line = c.processAttributes ""
@@ -262,7 +279,7 @@ describe 'Compiler.prototype', ->
       c.processNextLine()
       expect(c.output).to.equal '<div>\n  <a href="#" target="_blank">\n    <span>asdf</span>\n'
   
-  describe '#add_html_to_output()', ->
+  describe '#addHtmlToOutput()', ->
     it 'should add HTML to output correctly based on parsed tag data', ->
       c = new Compiler
       c.lineStartsWithTick = true

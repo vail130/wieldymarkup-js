@@ -5,36 +5,62 @@ class WieldyJS
   
   @whitespace: " \t"
   
-  @removeGroupedText: (text, z) =>
+  ###
+  Removes all substrings surrounded by a grouping substring, including
+    grouping substring on both sides.
+  
+  @param <String> text - The string from which to remove grouped substrings
+  @param <String> z - The grouping substring
+  @return <String> - The string with substrings removed
+  ###
+  @removeGroupedText: (text, groupingToken) =>
     output = ""
     status = true
     while text isnt ''
-      grouperIndex = text.indexOf z
-      if grouperIndex is -1
+      groupingTokenIndex = text.indexOf groupingToken
+      if groupingTokenIndex is -1
         output += text if status
         text = ''
       else
-        output += text.substring(0, grouperIndex) if status
-        if text.length > grouperIndex + 2
-          text = text.substring(grouperIndex+1, text.length)
+        output += text.substring(0, groupingTokenIndex) if status
+        if text.length > groupingTokenIndex + 2
+          text = text.substring(groupingTokenIndex+1, text.length)
         else
           text = ''
       status = not status
     output
   
+  ###
+  Gets the selector from the line of markup
+  
+  @param <String> line - The string from which to get the selector
+  @return <String> selector - The substring from the beginning of the line until the
+    first whitespace character
+  ###
   @getSelectorFromLine: (line) =>
-    firstWhitespaceIndex = null
+    selector = line
+    firstWhitespaceIndex = -1
     for ch, i in line.split ""
       if @whitespace.indexOf(ch) > -1
         firstWhitespaceIndex = i
         break
-    if firstWhitespaceIndex is null
-      line
-    else
-      line.substring(0, firstWhitespaceIndex)
+    if firstWhitespaceIndex > -1
+      selector = selector.substring(0, firstWhitespaceIndex)
+    selector
   
+  ###
+  Determines the level of nesting in a string
+  
+  @param <String> text - The string in which to determine the nest level
+  @param <String> openString - The substring that denotes an increase in
+    nesting level.
+  @param <String> closeString - The substring that denotes a decrase in
+    nesting level.
+  @return <String> nestLevel - The substring from the beginning of the line
+    until the first whitespace character
+  ###
   @getTagNestLevel: (text, openString = '<', closeString = '>') =>
-    nest_level = 0
+    nestLevel = 0
     while true
       openStringIndex = text.indexOf openString
       closeStringIndex = text.indexOf closeString
@@ -54,7 +80,7 @@ class WieldyJS
           closeStringFirst = true
       
       if openStringFirst
-        nest_level++
+        nestLevel++
         if text.length is openStringIndex + openString.length
           break
         else
@@ -62,15 +88,21 @@ class WieldyJS
             openStringIndex + openString.length, text.length
           )
       else if closeStringFirst
-        nest_level--
+        nestLevel--
         if text.length is closeStringIndex + closeString.length
           break
         else
           text = text.substring(
             closeStringIndex+closeString.length, text.length
           )
-    nest_level
+    nestLevel
   
+  ###
+  Gets the string of leading spaces and tabs in some text.
+  
+  @param <String> text - The string from which to get the leading whitespace
+  @return <String> leadingWhitespace - The leading whitespace in the string
+  ###
   @getLeadingWhitespaceFromText: (text) =>
     leadingWhitespace = ""
     for ch, i in text.split ""
@@ -79,11 +111,25 @@ class WieldyJS
         break
     leadingWhitespace
   
+  ###
+  Instantiate a new Compiler instance. Automatically compiles text if passed
+    in via parameters.
+  
+  @param <String> text - The input text to compile
+  @param <Boolean> compress - Whether to leave whitespace between HTML tags or not
+  ###
   constructor: (text = "", compress = false) ->
     @text = text
     @compress = compress
     @compile()
   
+  ###
+  Compiles input markup into HTML.
+  
+  @param <String> text - The input text to compile
+  @param <Boolean> compress - Whether to leave whitespace between HTML tags or not
+  @return <String> The compiled HTML
+  ###
   compile: (text = null, compress = null) ->
     @text = text if text isnt null
     @compress = not not compress if compress isnt null
@@ -99,8 +145,13 @@ class WieldyJS
       @processCurrentLevel().closeLowerLevelTags().processNextLine()
       
     @closeTag() while @openTags.length > 0
-    @
+    @output
   
+  ###
+  Determines current nesting level for HTML output.
+  
+  @return <Object> this - The reference to this instance object.
+  ###
   processCurrentLevel: =>
     @previousLevel = @currentLevel
     leadingWhitespace = @constructor.getLeadingWhitespaceFromText @text
@@ -120,6 +171,11 @@ class WieldyJS
       @currentLevel = i
     @
   
+  ###
+  Iterates through nesting levels that have been closed.
+  
+  @return <Object> this - The reference to this instance object.
+  ###
   closeLowerLevelTags: =>
     if @currentLevel <= @previousLevel
       while @openTags.length > 0 and
@@ -127,6 +183,11 @@ class WieldyJS
         @closeTag()
     @
   
+  ###
+  Adds closing HTML tags to output and removes entry from @openTags.
+  
+  @return <Object> this - The reference to this instance object.
+  ###
   closeTag: =>
     closingTagArray = @openTags.pop()
     if not @compress and closingTagArray[0] > 0
@@ -136,6 +197,12 @@ class WieldyJS
       @output += "\n"
     @
   
+  ###
+  Gets the next line of text, splits it into relevant pieces, and sends them
+    to respective methods for parsing.
+  
+  @return <Object> this - The reference to this instance object.
+  ###
   processNextLine: =>
     @lineStartsWithTick = false
     @selfClosing = false
@@ -208,6 +275,13 @@ class WieldyJS
       @addHtmlToOutput()
     @
   
+  ###
+  Adds an embedded line to output, removing @embedding_token
+    and not compiling.
+  
+  @param <String> line - The line of text with @embedding_token
+  @return <Object> this - The reference to this instance object.
+  ###
   processEmbeddedLine: (line) =>
     @lineStartsWithTick = true
     if not @compress
@@ -217,6 +291,12 @@ class WieldyJS
       @output += "\n"
     @
   
+  ###
+  Parses a selector into tag, ID, and classes.
+  
+  @param <String> selector - The unparsed selector string
+  @return <Object> this - The reference to this instance object.
+  ###
   processSelector: (selector) =>
     if selector.length > 0 and selector[0] in ['#', '.']
       @tag = 'div'
@@ -263,7 +343,15 @@ class WieldyJS
           
           selector = selector.substring nextDelimiterIndex, selector.length
     @
-    
+  
+  ###
+  Parses attribute string off of the beginning of a line of text after
+    the selector was removed, and returns everything after the attribute
+    string.
+  
+  @param <String> rest_of_line - The line of text after leading whitespace and selector have been removed
+  @return <String> this - The input text after all attributes have been removed
+  ###
   processAttributes: (restOfLine) =>
     @tagAttributes = []
     while restOfLine isnt ""
@@ -332,7 +420,12 @@ class WieldyJS
         )
     
     _.str.trim restOfLine
-
+  
+  ###
+  Adds HTML to output for a given line.
+  
+  @return <Object> this - The reference to this instance object.
+  ###
   addHtmlToOutput: =>
     if not @lineStartsWithTick
       tagHtml = "<#{@tag}"
